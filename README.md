@@ -1,11 +1,18 @@
-# TikTok Downloader Telegram Bot
+# Multi-Platform Video Downloader Telegram Bot
 
-A personal Telegram bot that downloads TikTok videos (watermark-free) when you send it a link.
+A personal Telegram bot that downloads videos (watermark-free) from **TikTok, YouTube, Instagram, and Pinterest** when you send it a link.
 
 ## Features
+- Supports TikTok, YouTube, Instagram, and Pinterest links
 - Watermark-free downloads via `yt-dlp`
 - Auto-deletes temp files after sending
 - Warns you if a video is too large for Telegram's 50MB bot upload limit
+
+## Platform notes
+- **TikTok** — watermark-free by default, no login needed for public videos.
+- **YouTube** — works for public videos/Shorts. Quality is auto-capped to try to stay under Telegram's 50MB limit; very long videos may still get rejected.
+- **Instagram** — works for public posts/Reels. Private accounts or posts require login cookies, which this basic setup doesn't include (ask me if you want that added).
+- **Pinterest** — works for public pins with video content.
 
 ---
 
