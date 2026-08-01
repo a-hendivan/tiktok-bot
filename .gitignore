@@ -1,0 +1,16 @@
+# Secrets
+.env
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+*.egg-info/
+
+# Downloaded media (shouldn't be committed anyway)
+*.mp4
+downloads/
+
+# OS
+.DS_Store
