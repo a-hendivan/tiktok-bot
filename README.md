@@ -5,14 +5,21 @@ A personal Telegram bot that downloads videos (watermark-free) from **TikTok, Yo
 ## Features
 - Supports TikTok, YouTube, Instagram, and Pinterest links
 - Watermark-free downloads via `yt-dlp`
+- **Send a link, then tap 🎬 Video or 🎵 Audio (mp3)** to choose what you get
+- **Extracts audio (mp3) from any video file you send/forward from your own library**
 - Auto-deletes temp files after sending
-- Warns you if a video is too large for Telegram's 50MB bot upload limit
+- Warns you if a file is too large for Telegram's size limits
 
 ## Platform notes
-- **TikTok** — watermark-free by default, no login needed for public videos.
+- **TikTok** — watermark-free by default, no login needed for public videos. **Photo carousels** are supported too: each image is sent as its own message (uses `gallery-dl`, since `yt-dlp` can't fetch TikTok photo posts).
 - **YouTube** — works for public videos/Shorts. Quality is auto-capped to try to stay under Telegram's 50MB limit; very long videos may still get rejected.
 - **Instagram** — works for public posts/Reels. Private accounts or posts require login cookies, which this basic setup doesn't include (ask me if you want that added).
 - **Pinterest** — works for public pins with video content.
+- **Your own video files** — send or forward any video to the bot and it replies with just the audio, as an mp3. Requires ffmpeg installed locally (see setup below).
+
+## Telegram size limits to know
+- Bots can **send** files up to 50MB.
+- Bots can only **download** (receive) files up to 20MB — this applies to the audio-extraction feature, since the bot has to download your video first. A long video from your phone may exceed this; trim or compress it first if so.
 
 ---
 
@@ -21,6 +28,15 @@ A personal Telegram bot that downloads videos (watermark-free) from **TikTok, Yo
 - Python 3.10+ installed (`python3 --version` to check)
 - A Telegram account
 - Git installed (`git --version` to check)
+- **ffmpeg** installed and on your PATH — required for the audio extraction feature:
+  - Windows: `winget install ffmpeg` (or download from ffmpeg.org and add it to PATH)
+  - macOS: `brew install ffmpeg`
+  - Linux: `sudo apt install ffmpeg`
+
+  Check it worked with:
+  ```bash
+  ffmpeg -version
+  ```
 
 ---
 
