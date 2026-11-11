@@ -14,6 +14,7 @@ import re
 import sys
 import logging
 import tempfile
+import urllib.request
 import shutil
 import subprocess
 from pathlib import Path
@@ -247,6 +248,44 @@ async def handle_video_file(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
+def resolve_url(url: str) -> str:
+    """Follows redirects (e.g. vm.tiktok.com short links) and returns the final URL."""
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            return resp.geturl()
+    except Exception:
+        return url
+
+
+async def send_images(context: ContextTypes.DEFAULT_TYPE, chat_id: int, images: list[str]) -> None:
+    """Sends each image as its own message."""
+    for img in images:
+        with open(img, "rb") as f:
+            try:
+                await context.bot.send_photo(chat_id=chat_id, photo=f)
+            except Exception:
+                # e.g. too large/odd dimensions for a photo: send as a file instead
+                f.seek(0)
+                await context.bot.send_document(chat_id=chat_id, document=f)
+        await asyncio.sleep(0.5)  # stay under Telegram's flood limits
+
+
+async def handle_photo_post(update: Update, context: ContextTypes.DEFAULT_TYPE, url: str) -> None:
+    """Downloads and sends all images of a TikTok photo carousel, no questions asked."""
+    status_msg = await update.message.reply_text("🖼 Photo post detected, downloading images...")
+    tmp_dir = tempfile.mkdtemp(prefix="photos_")
+    try:
+        images = await asyncio.to_thread(download_images, url, tmp_dir)
+        await send_images(context, update.effective_chat.id, images)
+        await status_msg.delete()
+    except Exception as exc:
+        logger.exception("Failed to download photo post %s", url)
+        await status_msg.edit_text(f"❌ Couldn't download the images.\n\nDetails: {exc}")
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """User sent text. If it has a supported link, ask video or audio."""
     text = update.message.text or ""
@@ -259,8 +298,17 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         )
         return
 
+    url = match.group(1)
+
+    # TikTok photo carousels: skip the video/audio question and send the images.
+    if is_tiktok(url):
+        final_url = await asyncio.to_thread(resolve_url, url)
+        if "/photo/" in final_url:
+            await handle_photo_post(update, context, final_url)
+            return
+
     # Callback data is limited to 64 bytes, so keep the URL in memory instead.
-    context.user_data["pending_url"] = match.group(1)
+    context.user_data["pending_url"] = url
 
     keyboard = InlineKeyboardMarkup(
         [[
@@ -317,15 +365,7 @@ async def handle_choice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         if images:
             chat_id = update.effective_chat.id
             await query.edit_message_text(f"🖼 Sending {len(images)} image(s)...")
-            for img in images:
-                with open(img, "rb") as f:
-                    try:
-                        await context.bot.send_photo(chat_id=chat_id, photo=f)
-                    except Exception:
-                        # e.g. too large/odd dimensions for a photo: send as file
-                        f.seek(0)
-                        await context.bot.send_document(chat_id=chat_id, document=f)
-                await asyncio.sleep(0.5)  # stay under Telegram's flood limits
+            await send_images(context, chat_id, images)
             await query.delete_message()
             return
 
